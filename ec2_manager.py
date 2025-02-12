@@ -2,7 +2,7 @@ import boto3
 ec2 = boto3.resource('ec2')
 
 def list_instances():
-    print("Lists all running EC2 instances that have the 'Created by' tag with value 'CLI' and 'Owner' tag with value 'netaaviv'.")
+    #Lists all running EC2 instances that have the 'Created by' tag with value 'CLI' and 'Owner' tag with value 'netaaviv'
     running_instances = [
         instance for instance in ec2.instances.all()
         if instance.state['Name'] == 'running' 
@@ -10,6 +10,35 @@ def list_instances():
         and any(tag['Key'] == 'Owner' and tag['Value'] == 'netaaviv' for tag in instance.tags)
     ]
     return running_instances
+
+def get_matching_ami(instance_type, os):
+    ec2 = boto3.client('ec2')  # Use client, not resource
+
+    # Filters based on OS and instance type
+    filters = []
+    
+    if os == 'ubuntu':
+        filters.append({'Name': 'name', 'Values': ['ubuntu/images/hvm-ssd/ubuntu-20.04-amd64-server-*']})
+    elif os == 'amazon-linux':
+        filters.append({'Name': 'name', 'Values': ['amzn2-ami-hvm-*-x86_64-gp2']})
+
+    filters.append({'Name': 'architecture', 'Values': ['x86_64' if instance_type == 't3.nano' else 'arm64']})
+
+    try:
+        # Fetching the images based on filters
+        response = ec2.describe_images(Filters=filters, Owners=['amazon'])
+
+        # Get the most recent AMI based on the creation date
+        if 'Images' in response and len(response['Images']) > 0:
+            latest_ami = max(response['Images'], key=lambda x: x['CreationDate'])
+            return latest_ami['ImageId']
+        else:
+            print("No matching AMIs found.")
+            return None
+    except Exception as e:
+        print(f"Error retrieving AMIs: {e}")
+        return None
+
 
 def create_ec2_instance(ami_id, instance_type):
     if instance_type not in ["t3.nano", "t4g.nano"]:
@@ -48,10 +77,3 @@ def stop_instance(instance_id):
     instance = ec2.Instance(instance_id)
     instance.stop()
     print(f"Stopped EC2 Instance ID: {instance_id}")
-
-
-def choose_ami(instance_type, instance_os):
-    """
-    Returns the latest AMI ID for Ubuntu (hardcoded in this case).
-    """
-    return AMI_ID
