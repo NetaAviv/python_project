@@ -1,17 +1,16 @@
-from ec2_manager import list_instances, get_matching_ami, create_ec2_instance
+from ec2_manager import *
 
 def main():
     print("Welcome to make your own infra with Neta's CLI tool!")
     
-    to_do = input("Enter 1 - To view all of your instances made by the program\n"
+    to_do = input("Enter 1 - To view all of your running instances made by the program\n"
                   "Enter 2 - To launch a new instance\n"
                   "Enter 3 - To start a stopped instance\n"
+                  "Enter 4 - To stop a running instance\n"
                   "Your input: ").strip()
 
-    # List existing instances
-    instances = list_instances()
-
     if to_do == '1':
+        instances = list_instances("running")
         print("You chose to view all your running instances.")
         if len(instances) > 0:
             print("The IDs of the instances you have running already:")
@@ -55,5 +54,34 @@ def main():
         else:
             print("Failed to find a suitable AMI.")
 
+    elif to_do == '3':
+        print("You chose to start a stopped instance.")
+        instances = list_instances("stopped")
+        if len(instances) > 0:
+            print("Your stopped instances are: ")
+            for instance in instances:
+                print(f"Instance ID: {instance.id}")
+            
+            instance_id = input("Enter the ID of the instance you want to start: ").strip()
+            start_instance(instance_id)
+            print(f"Started instance {instance_id}.")
+        else:
+            print("You don't have any stopped instances.")
+
+    elif to_do == '4':
+        print("You chose to stop a running instance.")
+        instances = list_instances("running")
+        if len(instances) > 0:
+            print("Your running instances are: ")
+            for instance in instances:
+                print(f"Instance ID: {instance.id}")
+            
+            instance_id = input("Enter the ID of the instance you want to stop: ").strip()
+            stop_instance(instance_id)
+            print(f"Stopped instance {instance_id}.")
+        else:
+            print("You don't have any ruuning instances.")
+    else:
+        print("That's not a vaild option!")
 if __name__ == "__main__":
     main()
