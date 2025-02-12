@@ -40,7 +40,7 @@ def get_matching_ami(instance_type, os):
         print(f"Error retrieving AMIs: {e}")
         return None
 
-def create_ec2_instance(ami_id, instance_type):
+def create_ec2_instance(ami_id, instance_type, instance_name):
     if instance_type not in ["t3.nano", "t4g.nano"]:
         raise Exception("Invalid instance type. Choose either 't3.nano' or 't4g.nano'.")
 
@@ -57,6 +57,7 @@ def create_ec2_instance(ami_id, instance_type):
         TagSpecifications=[{
             'ResourceType': 'instance',
             'Tags': [
+                {'Key': 'Name', 'Value': instance_name},  # Assign the instance name
                 {'Key': 'Created by', 'Value': 'CLI'},
                 {'Key': 'Owner', 'Value': 'netaaviv'}
             ]
