@@ -1,5 +1,5 @@
 # python_project
-before me can start, the project should run on ec2 aws linux and we need to configure the following:
+Before me can start, the project should run on ec2 aws linux and we need to configure the following:
 - install python
 - install boto3
 - configure aws cli
@@ -8,5 +8,5 @@ before me can start, the project should run on ec2 aws linux and we need to conf
   1. python -m venv venv
   2. source venv/bin/activate
 
-to run the code just run the main.py file which will guide you through! 
+To run the code, cd into the project and run the main.py file which will guide you through! 
 type "python main.py" to start 
