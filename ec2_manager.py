@@ -67,13 +67,21 @@ def create_ec2_instance(ami_id, instance_type, instance_name):
         raise Exception(f"Failed to create EC2 instance: {e}")
 
 def start_instance(instance_id):
-    print("Starting ...")
     instance = ec2.Instance(instance_id)
-    instance.start()
-    print(f"Started EC2 Instance ID: {instance_id}")
+    tags = {tag['Key']: tag['Value'] for tag in instance.tags or []}
+    if tags.get('Owner') == 'netaaviv' and tags.get('Created by') == 'CLI':
+        print("Starting ...")
+        instance.start()
+        print(f"Started EC2 Instance ID: {instance_id}")
+    else:
+        print("Instance does not have the required tags. Cannot start.")
 
 def stop_instance(instance_id):
-    print("Stopping ...")
     instance = ec2.Instance(instance_id)
-    instance.stop()
-    print(f"Stopped EC2 Instance ID: {instance_id}")
+    tags = {tag['Key']: tag['Value'] for tag in instance.tags or []}
+    if tags.get('Owner') == 'netaaviv' and tags.get('Created by') == 'CLI':
+        print("Stopping ...")
+        instance.stop()
+        print(f"Stopped EC2 Instance ID: {instance_id}")
+    else:
+        print("Instance does not have the required tags. Cannot stop.")
