@@ -40,13 +40,41 @@ def get_matching_ami(instance_type, os):
     except Exception as e:
         raise Exception(f"Error retrieving AMIs: {e}")
 
+def get_new_instance_details():
+        # Choose instance type
+        valid_instance_type = False
+        while not valid_instance_type:
+            instance_type = input("Please choose an instance type (t3.nano or t4g.nano): ").strip()
+            if instance_type not in ["t3.nano", "t4g.nano"]:
+                print("Invalid instance type. Please choose either 't3.nano' or 't4g.nano'.")
+            else:
+                valid_instance_type = True
+                print(f"You've selected {instance_type}.")
+        
+        # Choose OS
+        valid_os = False
+        while not valid_os:
+            os = input("Please choose an OS for your instance, 'amazon-linux' or 'ubuntu': ").strip()
+            if os not in ["amazon-linux", "ubuntu"]:
+                print("Invalid OS. Please choose either 'amazon-linux' or 'ubuntu'.")
+            else:
+                valid_os = True
+                print(f"You've selected {os}. Proceeding with instance creation...")
+
+        print("Trying to find the perfect AMI based on your choices...")
+        ami_id = get_matching_ami(instance_type, os)  # Get the latest AMI based on OS and instance type
+        
+        if ami_id:
+            print(f"Found AMI: {ami_id}")
+            instance_name = input("Choose a name for the new instance: ").strip()
+            print("Creating the instance...")
+            new_instance_id = create_ec2_instance(ami_id, instance_type, instance_name)
+            print(f"Created EC2 Instance with ID: {new_instance_id}")
+        else:
+            print("Failed to find a suitable AMI.")
+
+
 def create_ec2_instance(ami_id, instance_type, instance_name):
-    if instance_type not in ["t3.nano", "t4g.nano"]:
-        raise Exception("Invalid instance type. Choose either 't3.nano' or 't4g.nano'.")
-
-    if len(list_instances("running")) >= 2:
-        raise Exception("Cannot create more than 2 running instances with 'Owner' tag set to 'netaaviv' at a time.")
-
     try:
         instances = ec2.create_instances(
             ImageId=ami_id,
