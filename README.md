@@ -1,4 +1,4 @@
-# python_project
+# Neta's final python project
 Before me can start, the project should run on ec2 aws linux and we need to configure the following:
 - install python: sudo yum install python
 - install pip: sudo yum install pip
