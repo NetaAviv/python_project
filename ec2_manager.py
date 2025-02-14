@@ -4,17 +4,57 @@ ec2 = boto3.resource('ec2')
 
 def list_instances(state):
     # Lists all EC2 instances with the required tags and chosen state
-    running_instances = [
+    instances = [
         instance for instance in ec2.instances.all()
         if instance.state['Name'] == state
         and instance.tags  # Ensure tags exist
         and any(tag['Key'] == 'Created by' and tag['Value'] == 'CLI' for tag in instance.tags)
         and any(tag['Key'] == 'Owner' and tag['Value'] == 'netaaviv' for tag in instance.tags)
     ]
-    return running_instances
+    return instances
+
+def viewing_request():
+    # Handles user input for viewing instances
+    valid_input = False
+    while not valid_input:
+        to_view = input("Enter 1 - View running instances\n"
+                        "Enter 2 - View stopped instances\n"
+                        "Enter 3 - View all\n"
+                        "Your input: ").strip()
+        if to_view == '1':
+            running_instances = list_instances("running")
+            if len(running_instances) == 0:
+                print("No running instances.")
+            else:
+                print("The IDs of the instances you have running already:")
+                for instance in running_instances:
+                    print(f"Instance ID: {instance.id}, State: {instance.state['Name']}")
+            valid_input = True
+
+        elif to_view == '2':
+            stopped_instances = list_instances("stopped")
+            if len(stopped_instances) == 0:
+                print("No stopped instances.")
+            else:
+                print("The IDs of the stopped instances:")
+                for instance in stopped_instances:
+                    print(f"Instance ID: {instance.id}, State: {instance.state['Name']}")
+            valid_input = True
+
+        elif to_view == '3':
+            all_instances = list_instances("stopped") + list_instances("running")
+            if len(all_instances) == 0:
+                print("No instances were made by the program.")
+            else:
+                print("The IDs of all instances made by the program:")
+                for instance in all_instances:
+                    print(f"Instance ID: {instance.id}, State: {instance.state['Name']}")
+            valid_input = True
+        else:
+            print("Invalid option! Please enter a valid option.")
 
 def get_matching_ami(instance_type, os):
-    ec2 = boto3.client('ec2')
+    ec2_client = boto3.client('ec2')
 
     # Filters based on OS and instance type
     filters = []
@@ -29,41 +69,41 @@ def get_matching_ami(instance_type, os):
 
     try:
         # Fetching the images based on filters
-        response = ec2.describe_images(Filters=filters, Owners=['amazon'])
+        response = ec2_client.describe_images(Filters=filters, Owners=['amazon'])
 
         # Get the most recent AMI based on the creation date
         if response['Images']:
             latest_ami = max(response['Images'], key=lambda x: x['CreationDate'])
             return latest_ami['ImageId']
         else:
-            raise Exception("No matching AMIs found for the given OS and instance type.")
+            raise Exception(f"No matching AMIs found for the given OS '{os}' and instance type '{instance_type}'.")
     except Exception as e:
         raise Exception(f"Error retrieving AMIs: {e}")
 
 def get_new_instance_details():
-        # Choose instance type
-        valid_instance_type = False
-        while not valid_instance_type:
-            instance_type = input("Please choose an instance type (t3.nano or t4g.nano): ").strip()
-            if instance_type not in ["t3.nano", "t4g.nano"]:
-                print("Invalid instance type. Please choose either 't3.nano' or 't4g.nano'.")
-            else:
-                valid_instance_type = True
-                print(f"You've selected {instance_type}.")
-        
-        # Choose OS
-        valid_os = False
-        while not valid_os:
-            os = input("Please choose an OS for your instance, 'amazon-linux' or 'ubuntu': ").strip()
-            if os not in ["amazon-linux", "ubuntu"]:
-                print("Invalid OS. Please choose either 'amazon-linux' or 'ubuntu'.")
-            else:
-                valid_os = True
-                print(f"You've selected {os}. Proceeding with instance creation...")
+    # Choose instance type
+    valid_instance_type = False
+    while not valid_instance_type:
+        instance_type = input("Please choose an instance type (t3.nano or t4g.nano): ").strip()
+        if instance_type not in ["t3.nano", "t4g.nano"]:
+            print("Invalid instance type. Please choose either 't3.nano' or 't4g.nano'.")
+        else:
+            valid_instance_type = True
+            print(f"You've selected {instance_type}.")
+    
+    # Choose OS
+    valid_os = False
+    while not valid_os:
+        os = input("Please choose an OS for your instance, 'amazon-linux' or 'ubuntu': ").strip()
+        if os not in ["amazon-linux", "ubuntu"]:
+            print("Invalid OS. Please choose either 'amazon-linux' or 'ubuntu'.")
+        else:
+            valid_os = True
+            print(f"You've selected {os}. Proceeding with instance creation...")
 
-        print("Trying to find the perfect AMI based on your choices...")
+    print("Trying to find the perfect AMI based on your choices...")
+    try:
         ami_id = get_matching_ami(instance_type, os)  # Get the latest AMI based on OS and instance type
-        
         if ami_id:
             print(f"Found AMI: {ami_id}")
             instance_name = input("Choose a name for the new instance: ").strip()
@@ -72,7 +112,8 @@ def get_new_instance_details():
             print(f"Created EC2 Instance with ID: {new_instance_id}")
         else:
             print("Failed to find a suitable AMI.")
-
+    except Exception as e:
+        print(f"Error: {e}")
 
 def create_ec2_instance(ami_id, instance_type, instance_name):
     try:
