@@ -17,44 +17,82 @@ def viewing_request():
     # Handles user input for viewing instances
     to_view = '0'
     while to_view != '4':  # Corrected the 'while' loop condition for proper exit
-            to_view = input("\nEnter 1 - View running instances\n"
-                            "Enter 2 - View stopped instances\n"
-                            "Enter 3 - View all\n"
-                            "Enter 4 - Return to main page\n"
-                            "Your input: ").strip()
+        to_view = input("\nEnter 1 - View running instances\n"
+                        "Enter 2 - View stopped instances\n"
+                        "Enter 3 - View all\n"
+                        "Enter 4 - Return to main page\n"
+                        "Your input: ").strip()
 
-            if to_view == '1':
-                running_instances = list_instances("running")
-                if len(running_instances) == 0:
-                    print("No running instances.")
-                else:
-                    print("The IDs of the instances you have running already:")
-                    for instance in running_instances:
-                        print(f"Instance ID: {instance.id}, State: {instance.state['Name']}")
-
-            elif to_view == '2':
-                stopped_instances = list_instances("stopped")
-                if len(stopped_instances) == 0:
-                    print("No stopped instances.")
-                else:
-                    print("The IDs of the stopped instances:")
-                    for instance in stopped_instances:
-                        print(f"Instance ID: {instance.id}, State: {instance.state['Name']}")
-
-            elif to_view == '3':
-                all_instances = list_instances("stopped") + list_instances("running")
-                if len(all_instances) == 0:
-                    print("No instances were made by the program.")
-                else:
-                    print("The IDs of all instances made by the program:")
-                    for instance in all_instances:
-                        print(f"Instance ID: {instance.id}, State: {instance.state['Name']}")
-
-            elif to_view == '4':
-                print("Returning back to the main page.")
-
+        if to_view == '1':
+            running_instances = list_instances("running")
+            if len(running_instances) == 0:
+                print("No running instances.")
             else:
-                print("Invalid option! Please enter a valid option.")
+                print("The IDs of the instances you have running already:")
+                for instance in running_instances:
+                    print(f"Instance ID: {instance.id}, State: {instance.state['Name']}")
+
+        elif to_view == '2':
+            stopped_instances = list_instances("stopped")
+            if len(stopped_instances) == 0:
+                print("No stopped instances.")
+            else:
+                print("The IDs of the stopped instances:")
+                for instance in stopped_instances:
+                    print(f"Instance ID: {instance.id}, State: {instance.state['Name']}")
+
+        elif to_view == '3':
+            all_instances = list_instances("stopped") + list_instances("running")
+            if len(all_instances) == 0:
+                print("No instances were made by the program.")
+            else:
+                print("The IDs of all instances made by the program:")
+                for instance in all_instances:
+                    print(f"Instance ID: {instance.id}, State: {instance.state['Name']}")
+
+        elif to_view == '4':
+            print("Returning back to the main page.")
+
+        else:
+            print("Invalid option! Please enter a valid option.")
+
+def starting_instance_request():
+    instances = list_instances("stopped")
+    if len(instances) > 0:
+        print("\nYour stopped instances are: ")
+        for i, instance in enumerate(instances):  # Fixed iteration with enumerate
+            print(f"{i + 1}: Instance ID: {instance.id}")
+
+        try:
+            chosen_instance_num = int(input("Enter the number of the instance you want to start: ").strip()) - 1
+            if 0 <= chosen_instance_num < len(instances):
+                start_instance(instances[chosen_instance_num].id)  # Pass instance id to start
+            else:
+                print(f"Invalid instance number: {chosen_instance_num + 1}")
+        except ValueError:
+            print("Please enter a valid number.")
+    else:
+        print("You don't have any stopped instances.")
+
+
+def stopping_instance_request():
+    print("\n")
+    instances = list_instances("running")  # Get running instances instead of stopped ones
+    if len(instances) > 0:
+        print("Your running instances are: ")
+        for i, instance in enumerate(instances):  # Fixed iteration with enumerate
+            print(f"{i + 1}: Instance ID: {instance.id}")
+
+        try:
+            chosen_instance_num = int(input("Enter the number of the instance you want to stop: ").strip()) - 1
+            if 0 <= chosen_instance_num < len(instances):
+                stop_instance(instances[chosen_instance_num].id)  # Pass instance id to stop
+            else:
+                print(f"Invalid instance number: {chosen_instance_num + 1}")
+        except ValueError:
+            print("Please enter a valid number.")
+    else:
+        print("You don't have any running instances.")
 
 def get_matching_ami(instance_type, os):
     ec2_client = boto3.client('ec2')
