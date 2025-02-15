@@ -1,7 +1,7 @@
 from ec2_manager import *
 
 def main():
-    print("Welcome to make your own infra with Neta's CLI tool!")
+    print("\nWelcome to make your own infra with Neta's CLI tool!")
     stop_program = False
     while not stop_program:
         to_do = input("\nEnter 1 - View instances made by the program\n"
