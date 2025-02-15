@@ -76,10 +76,9 @@ def starting_instance_request():
 
 
 def stopping_instance_request():
-    print("\n")
     instances = list_instances("running")  # Get running instances instead of stopped ones
     if len(instances) > 0:
-        print("Your running instances are: ")
+        print("\nYour running instances are: ")
         for i, instance in enumerate(instances):  # Fixed iteration with enumerate
             print(f"{i + 1}: Instance ID: {instance.id}")
 
