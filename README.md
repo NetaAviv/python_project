@@ -8,6 +8,7 @@ Before me can start, the project should run on ec2 aws linux and we need to conf
 - set the python enviorment:
   1. python -m venv venv
   2. source venv/bin/activate
+- Edit the configuration file, place there the vpc, the subnet and the key pair you want the instances to be made with
 
 To run the code, cd into the project and run the main.py file which will guide you through! 
 Enter "python main.py" to start 
