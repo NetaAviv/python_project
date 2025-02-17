@@ -1,6 +1,16 @@
 import boto3
+import configparser
 
 ec2 = boto3.resource('ec2')
+
+def load_configuration():
+    config = configparser.ConfigParser()
+    config.read("configuration")
+    vpc_id = config["VPC"]["vpc_id"]
+    subnet_id = config["VPC"]["subnet_id"]
+    key_name = config["SSH"]["key_name"]
+
+    return vpc_id, subnet_id, key_name
 
 def list_instances(state):
     # Lists all EC2 instances with the required tags and chosen state
@@ -12,11 +22,17 @@ def list_instances(state):
         and any(tag['Key'] == 'Owner' and tag['Value'] == 'netaaviv' for tag in instance.tags)
     ]
     return instances
+    
+def print_instances_details(list_of_instances):
+    for instance in list_of_instances:
+        public_ip = instance.public_ip_address if instance.public_ip_address else "No Public IP"
+        name_tag = next((tag['Value'] for tag in instance.tags if tag['Key'] == 'Name'), "No Name")
+        print(f"Instance ID: {instance.id}, Name: {name_tag}, State: {instance.state['Name']}, Public IP: {public_ip}")
 
 def viewing_request():
     # Handles user input for viewing instances
     to_view = '0'
-    while to_view != '4':  # Corrected the 'while' loop condition for proper exit
+    while to_view != '4':
         to_view = input("\nEnter 1 - View running instances\n"
                         "Enter 2 - View stopped instances\n"
                         "Enter 3 - View all\n"
@@ -24,35 +40,28 @@ def viewing_request():
                         "Your input: ").strip()
 
         if to_view == '1':
+            print("Running instances:")
             running_instances = list_instances("running")
             if len(running_instances) == 0:
                 print("No running instances.")
             else:
-                print("The IDs of the instances you have running already:")
-                for instance in running_instances:
-                    print(f"Instance ID: {instance.id}, State: {instance.state['Name']}")
-
+                print_instances_details(running_instances)
         elif to_view == '2':
+            print("Stopped instances:")
             stopped_instances = list_instances("stopped")
             if len(stopped_instances) == 0:
                 print("No stopped instances.")
             else:
-                print("The IDs of the stopped instances:")
-                for instance in stopped_instances:
-                    print(f"Instance ID: {instance.id}, State: {instance.state['Name']}")
-
+                print_instances_details(stopped_instances)
         elif to_view == '3':
+            print("All instances:")
             all_instances = list_instances("stopped") + list_instances("running")
             if len(all_instances) == 0:
                 print("No instances were made by the program.")
             else:
-                print("The IDs of all instances made by the program:")
-                for instance in all_instances:
-                    print(f"Instance ID: {instance.id}, State: {instance.state['Name']}")
-
+                print_instances_details(all_instances)
         elif to_view == '4':
             print("Returning back to the main page.")
-
         else:
             print("Invalid option! Please enter a valid option.")
 
@@ -95,23 +104,15 @@ def stopping_instance_request():
 
 def get_matching_ami(instance_type, os):
     ec2_client = boto3.client('ec2')
-
-    # Filters based on OS and instance type
     filters = []
     if os == 'ubuntu':
         filters.append({'Name': 'name', 'Values': ['ubuntu*']})
     elif os == 'amazon-linux':
         filters.append({'Name': 'name', 'Values': ['amzn2-ami-hvm*']})
-
-    # Determine architecture based on instance type
     architecture = 'x86_64' if instance_type == 't3.nano' else 'arm64'
     filters.append({'Name': 'architecture', 'Values': [architecture]})
-
     try:
-        # Fetching the images based on filters
         response = ec2_client.describe_images(Filters=filters, Owners=['amazon'])
-
-        # Get the most recent AMI based on the creation date
         if response['Images']:
             latest_ami = max(response['Images'], key=lambda x: x['CreationDate'])
             return latest_ami['ImageId']
@@ -157,8 +158,11 @@ def get_new_instance_details():
 
 def create_ec2_instance(ami_id, instance_type, instance_name):
     try:
+        vpc_id, subnet_id, key_name = load_configuration()
         instances = ec2.create_instances(
             ImageId=ami_id,
+            KeyName=key_name,
+            SubnetId=subnet_id,
             InstanceType=instance_type,
             MinCount=1,
             MaxCount=1,
