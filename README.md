@@ -25,6 +25,6 @@ Before running, update the configuration file with:
 
 Running the Project
 Once everything is set up, start the program:
-python main.py
+- python main.py
 This will guide you through the process step by step.
 
