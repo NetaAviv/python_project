@@ -1,0 +1,6 @@
+[VPC]
+vpc_id = #write the id of an already made VPC here
+subnet_id = #write the id of an already made subnet here
+
+[SSH]
+key_name = #write the name of an alreay made key pair for the instance to use
