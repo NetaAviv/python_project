@@ -70,7 +70,8 @@ def starting_instance_request():
     if len(instances) > 0:
         print("\nYour stopped instances are: ")
         for i, instance in enumerate(instances):  # Fixed iteration with enumerate
-            print(f"{i + 1}: Instance ID: {instance.id}")
+            print(f"{i+1}: ", end="")
+            print_instances_details([instance])
 
         try:
             chosen_instance_num = int(input("Enter the number of the instance you want to start: ").strip()) - 1
@@ -89,8 +90,8 @@ def stopping_instance_request():
     if len(instances) > 0:
         print("\nYour running instances are: ")
         for i, instance in enumerate(instances):  # Fixed iteration with enumerate
-            print(f"{i + 1}: Instance ID: {instance.id}")
-
+            print(f"{i+1}: ", end="")
+            print_instances_details([instance])
         try:
             chosen_instance_num = int(input("Enter the number of the instance you want to stop: ").strip()) - 1
             if 0 <= chosen_instance_num < len(instances):
