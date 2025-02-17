@@ -19,10 +19,9 @@ source venv/bin/activate
 
 5. Edit Configuration
 Before running, update the configuration file with:
-
-VPC ID
-Subnet ID
-Key Pair Name
+  - VPC ID
+  - Subnet ID
+  - Key Pair Name
 
 Running the Project
 Once everything is set up, start the program:
