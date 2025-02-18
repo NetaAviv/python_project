@@ -1,0 +1,15 @@
+#!/bin/bash
+if [ -f /etc/os-release ]; then
+    . /etc/os-release
+    if [[ "$ID" == "amzn" || "$ID_LIKE" == "rhel" ]]; then
+        yum update -y
+        yum install -y git python3
+    elif [[ "$ID" == "ubuntu" ]]; then
+        apt update -y
+        apt install -y git python3
+    else
+        echo "Unsupported OS. Manual installation may be required."
+    fi
+else
+    echo "OS detection failed. Manual installation may be required."
+fi
