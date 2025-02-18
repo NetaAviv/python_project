@@ -48,7 +48,7 @@ def main():
 
                     elif to_do == '5':
                         print("Returning to main menu...")
-                        break  # Exit EC2 management menu
+                        break
 
                     else:
                         print("Invalid option. Please enter a valid number.")
