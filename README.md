@@ -35,6 +35,8 @@ Before running, update the configuration file with:
 
  - Key Pair Name
 
+ - S3 bucker name prefix
+
 ▶️ Running the Project
 
 Once everything is set up, start the program:
