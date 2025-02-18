@@ -3,6 +3,15 @@ import configparser
 
 ec2 = boto3.resource('ec2')
 
+def load_user_data():
+    #Reads the user_data script from the user data file 
+    try:
+        with open("user_data", "r") as file:
+            return file.read()
+    except Exception as e:
+        print(f"Error reading user_data file: {e}")
+        return ""
+
 def load_configuration():
     config = configparser.ConfigParser()
     config.read("configuration")
@@ -36,32 +45,32 @@ def viewing_request():
         to_view = input("\nEnter 1 - View running instances\n"
                         "Enter 2 - View stopped instances\n"
                         "Enter 3 - View all\n"
-                        "Enter 4 - Return to main page\n"
+                        "Enter 4 - Return to main ec2 managment page\n"
                         "Your input: ").strip()
 
         if to_view == '1':
-            print("Running instances:")
+            print("\nRunning instances:")
             running_instances = list_instances("running")
             if len(running_instances) == 0:
-                print("No running instances.")
+                print("\nNo running instances.")
             else:
                 print_instances_details(running_instances)
         elif to_view == '2':
-            print("Stopped instances:")
+            print("\nStopped instances:")
             stopped_instances = list_instances("stopped")
             if len(stopped_instances) == 0:
-                print("No stopped instances.")
+                print("\nNo stopped instances.")
             else:
                 print_instances_details(stopped_instances)
         elif to_view == '3':
-            print("All instances:")
+            print("\nAll instances:")
             all_instances = list_instances("stopped") + list_instances("running")
             if len(all_instances) == 0:
-                print("No instances were made by the program.")
+                print("\nNo instances were made by the program.")
             else:
                 print_instances_details(all_instances)
         elif to_view == '4':
-            print("Returning back to the main page.")
+            print("Returning back to main ec2 managment page...")
         else:
             print("Invalid option! Please enter a valid option.")
 
@@ -108,23 +117,34 @@ def stopping_instance_request():
         print("You don't have any running instances.")
 
 def get_matching_ami(instance_type, os):
-    ec2_client = boto3.client('ec2')
-    filters = []
+    if instance_type not in ['t3.nano', 't4g.nano']:
+        raise ValueError("Invalid instance type. Only 't3.nano' and 't4g.nano' are supported.")
+
+    ssm_client = boto3.client('ssm')
+
     if os == 'ubuntu':
-        filters.append({'Name': 'name', 'Values': ['ubuntu*']})
+        if instance_type == 't3.nano':
+            parameter_name = "/aws/service/canonical/ubuntu/server/jammy/stable/current/amd64/hvm/ebs-gp2/ami-id"
+        else:  # t4g.nano (ARM-based)
+            parameter_name = "/aws/service/canonical/ubuntu/server/jammy/stable/current/arm64/hvm/ebs-gp2/ami-id"
+
     elif os == 'amazon-linux':
-        filters.append({'Name': 'name', 'Values': ['amzn2-ami-hvm*']})
-    architecture = 'x86_64' if instance_type == 't3.nano' else 'arm64'
-    filters.append({'Name': 'architecture', 'Values': [architecture]})
+        if instance_type == 't3.nano':
+            parameter_name = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
+        else:  # t4g.nano (ARM-based)
+            parameter_name = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64"
+
+    else:
+        raise ValueError("Invalid OS. Only 'ubuntu' and 'amazon-linux' are supported.")
+
     try:
-        response = ec2_client.describe_images(Filters=filters, Owners=['amazon'])
-        if response['Images']:
-            latest_ami = max(response['Images'], key=lambda x: x['CreationDate'])
-            return latest_ami['ImageId']
-        else:
-            raise Exception(f"No matching AMIs found for the given OS '{os}' and instance type '{instance_type}'.")
+        response = ssm_client.get_parameter(Name=parameter_name)
+        ami_id = response['Parameter']['Value']
+        print(f"Latest AMI ID for {os} ({instance_type}): {ami_id}")
+        return ami_id
+
     except Exception as e:
-        raise Exception(f"Error retrieving AMIs: {e}")
+        raise Exception(f"Error retrieving AMI: {e}")
 
 def get_new_instance_details():
     # Choose instance type
@@ -162,6 +182,13 @@ def get_new_instance_details():
         print(f"Error: {e}")
 
 def create_ec2_instance(ami_id, instance_type, instance_name):
+    use_userdata = input("Do you want to install Git and Python on the instance? (yes/no): ").strip().lower()
+    if use_userdata == "yes":
+        print("Ok, will install git and python")
+        user_data = load_user_data()
+    else:
+        print("Ok,will not install git or python")
+        user_data = ""
     try:
         vpc_id, subnet_id, key_name = load_configuration()
         instances = ec2.create_instances(
@@ -171,6 +198,7 @@ def create_ec2_instance(ami_id, instance_type, instance_name):
             InstanceType=instance_type,
             MinCount=1,
             MaxCount=1,
+            UserData=user_data,
             TagSpecifications=[{
                 'ResourceType': 'instance',
                 'Tags': [
