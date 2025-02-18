@@ -65,25 +65,29 @@ def viewing_request():
         else:
             print("Invalid option! Please enter a valid option.")
 
+
 def starting_instance_request():
     instances = list_instances("stopped")
-    if len(instances) > 0:
+
+    if instances:
         print("\nYour stopped instances are: ")
-        for i, instance in enumerate(instances):  # Fixed iteration with enumerate
+        for i, instance in enumerate(instances):
             print(f"{i+1}: ", end="")
             print_instances_details([instance])
 
-        try:
-            chosen_instance_num = int(input("Enter the number of the instance you want to start: ").strip()) - 1
-            if 0 <= chosen_instance_num < len(instances):
-                start_instance(instances[chosen_instance_num].id)  # Pass instance id to start
-            else:
-                print(f"Invalid instance number: {chosen_instance_num + 1}")
-        except ValueError:
-            print("Please enter a valid number.")
+        if len(list_instances("running")) >= 2:
+            print("You already have 2 running instances, you are not allowed to start another.")
+        else:
+            try:
+                chosen_instance_num = int(input("Enter the number of the instance you want to start: ").strip()) - 1
+                if 0 <= chosen_instance_num < len(instances):
+                    start_instance(instances[chosen_instance_num].id)
+                else:
+                    print(f"Invalid instance number: {chosen_instance_num + 1}")
+            except ValueError:
+                print("Please enter a valid number.")
     else:
         print("You don't have any stopped instances.")
-
 
 def stopping_instance_request():
     instances = list_instances("running")  # Get running instances instead of stopped ones
