@@ -11,7 +11,6 @@ def load_s3_configuration():
     return config["S3"]["default_bucket_prefix"]
 
 def create_s3_bucket():
-    print("You chose to create an S3 bucket:")
     default_prefix = load_s3_configuration()
     bucket_name = input(f"Enter a name for your bucket (prefix '{default_prefix}'): ").strip()
 
@@ -21,23 +20,28 @@ def create_s3_bucket():
     # Check if the bucket already exists
     existing_buckets = [bucket["Name"] for bucket in s3_client.list_buckets()["Buckets"]]
     if bucket_name in existing_buckets:
-        print(f"The bucket name must be unique, bucket '{bucket_name}' already exists.")
+        print(f"The bucket name must be unique. '{bucket_name}' already exists.")
         return
 
     public_access = input("Do you want this bucket to be public? (yes/no): ").strip().lower()
     if public_access == "yes":
         confirm = input("Are you sure you want to make this bucket public? (yes/no): ").strip().lower()
         if confirm != "yes":
-            print(" OK, bucket will be private.")
+            print("OK, bucket will be private.")
             public_access = "no"
 
     try:
         s3_client.create_bucket(Bucket=bucket_name)
+        
         if public_access == "yes":
             s3_client.put_public_access_block(
                 Bucket=bucket_name,
                 PublicAccessBlockConfiguration={
-                    "BlockPublicPolicy": False}
+                    "BlockPublicAcls": False,
+                    "IgnorePublicAcls": False,
+                    "BlockPublicPolicy": False,
+                    "RestrictPublicBuckets": False
+                }
             )
             public_policy = {
                 "Version": "2012-10-17",
@@ -51,10 +55,9 @@ def create_s3_bucket():
                 ]
             }
             s3_client.put_bucket_policy(Bucket=bucket_name, Policy=json.dumps(public_policy))
-            print(f"Bucket '{bucket_name}' created successfully with public access")
-
+            print(f"Bucket '{bucket_name}' created successfully with public access.")
         else:
-            print(f"Bucket '{bucket_name}' created successfully with private access")
+            print(f"Bucket '{bucket_name}' created successfully with private access.")
 
         s3_client.put_bucket_tagging(
             Bucket=bucket_name,
@@ -67,43 +70,38 @@ def create_s3_bucket():
         )
 
     except Exception as e:
-        print(f" Error creating bucket: {e}")
+        print(f"Error creating bucket: {e}")
 
 def upload_file_to_s3():
-    """Uploads a file to an S3 bucket created by the CLI."""
     buckets = list_cli_buckets()
-    
     if not buckets:
-        print(" No CLI-created buckets found.")
+        print("No CLI-created buckets found.")
         return
-    
-    print("\n Choose a bucket to upload to:")
-    for i, bucket in enumerate(buckets):
-        print(f"{i + 1}: {bucket}")
 
-    try:
-        bucket_choice = int(input("Enter the number of the bucket: ").strip()) - 1
-        if bucket_choice < 0 or bucket_choice >= len(buckets):
-            print(" Invalidnumber.")
-            return
-        bucket_name = buckets[bucket_choice]
-    except ValueError:
-        print(" Invalid input. Please enter a number.")
-        return
+    while True:
+        bucket_choice = input("Enter the number of the bucket you want to upload to: ").strip()
+        if bucket_choice.isdigit():
+            bucket_choice_num = int(bucket_choice) - 1
+            if 0 <= bucket_choice_num < len(buckets):
+                bucket_name = buckets[bucket_choice_num]
+                break
+            else:
+                print("Invalid selection. Please enter a valid number.")
+        else:
+            print("Invalid input. Please enter a number.")
 
     file_path = input("Enter the full path of the file to upload: ").strip()
-
     if not os.path.isfile(file_path):
-        print(" Invalid file path.")
+        print("Invalid file path.")
         return
 
     file_name = os.path.basename(file_path)
 
     try:
         s3_client.upload_file(file_path, bucket_name, file_name)
-        print(f" File '{file_name}' successfully uploaded to '{bucket_name}'.")
+        print(f"File '{file_name}' successfully uploaded to '{bucket_name}'.")
     except Exception as e:
-        print(f" Error uploading file: {e}")
+        print(f"Error uploading file: {e}")
 
 def list_cli_buckets():
     try:
@@ -116,18 +114,19 @@ def list_cli_buckets():
                 tag_dict = {tag["Key"]: tag["Value"] for tag in tags}
                 if tag_dict.get("Created by") == "CLI" and tag_dict.get("Owner") == "netaaviv":
                     cli_buckets.append(bucket_name)
-            except s3_client.exceptions.ClientError:
-                continue  # Skip buckets without tags
+            except s3_client.exceptions.ClientError as e:
+                if "NoSuchTagSet" in str(e):
+                    continue  # Skip buckets without tags
+                print(f"Warning: Could not retrieve tags for {bucket_name}. {e}")
 
         if cli_buckets:
             print("\nS3 Buckets created by the CLI:")
             for i, bucket in enumerate(cli_buckets):
                 print(f"{i + 1}: {bucket}")
-
         else:
             print("No CLI-created buckets found.")
 
         return cli_buckets
     except Exception as e:
-        print(f" Error listing buckets: {e}")
+        print(f"Error listing buckets: {e}")
         return []
