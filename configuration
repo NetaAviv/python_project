@@ -4,3 +4,6 @@ subnet_id = #write the id of an already made subnet here
 
 [SSH]
 key_name = #write the name of an alreay made key pair for the instance to use
+
+[S3]
+default_bucket_prefix = neta-cli-bucket- #you can change the name if you want
