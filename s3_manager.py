@@ -75,7 +75,6 @@ def create_s3_bucket():
 def upload_file_to_s3():
     buckets = list_cli_buckets()
     if not buckets:
-        print("No CLI-created buckets found.")
         return
 
     while True:
