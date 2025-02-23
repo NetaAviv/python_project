@@ -160,7 +160,7 @@ def get_new_instance_details():
     # Choose OS
     valid_os = False
     while not valid_os:
-        os = input("Please choose an OS for your instance, 'amazon-linux' or 'ubuntu': ").strip()
+        os = input("/nPlease choose an OS for your instance, 'amazon-linux' or 'ubuntu': ").strip()
         if os not in ["amazon-linux", "ubuntu"]:
             print("Invalid OS. Please choose either 'amazon-linux' or 'ubuntu'.")
         else:
