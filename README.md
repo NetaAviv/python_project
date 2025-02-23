@@ -7,7 +7,6 @@ Before running the project, ensure your AWS EC2 instance (Amazon Linux) is prope
 1️⃣ Install Required Packages
 
  - sudo yum install -y python3 pip git
- - pip install boto3
 
 2️⃣ Configure AWS CLI
 
@@ -25,7 +24,10 @@ Make sure your AWS CLI is set up with the correct credentials:
  - python3 -m venv venv
  - source venv/bin/activate
 
-5️⃣ Edit Configuration
+5️⃣ Install boto3
+ - pip install boto3
+
+6 Edit Configuration
 
 Before running, update the configuration file with:
 
