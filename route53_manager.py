@@ -79,10 +79,10 @@ def manage_dns_record():
     zone_id = selected_zone['Id'].split('/')[-1]
     zone_name = selected_zone['Name'].rstrip('.')
     
-    valid_actions = ['CREATE', 'UPSERT', 'DELETE']
+    valid_actions = ['CREATE', 'UPDATE', 'DELETE']
     action = ""
     while action not in valid_actions:
-        action = input("Enter action (CREATE, UPSERT, DELETE): ").strip().upper()
+        action = input("Choose an action 'create', 'update' or 'delete: ").strip().upper()
         if action not in valid_actions:
             print("Invalid action")
         else:
@@ -103,7 +103,7 @@ def manage_dns_record():
                 selected_record = records[record_choice - 1]
                 
                 if selected_record['Type'] in ['NS', 'SOA']:
-                    print(" Cannot delete NS or SOA records as they are required for the hosted zone.")
+                    print("Cannot delete NS or SOA records! They are required for the hosted zone.")
                     continue
                 
                 if 1 <= record_choice <= len(records):
@@ -117,9 +117,31 @@ def manage_dns_record():
         record_type = selected_record['Type']
         record_value = selected_record['ResourceRecords'][0]['Value']
         
-        if record_type == "TXT":
-            record_value = '"' + record_value.strip('"') + '"'
-
+    elif action == "UPDATE":
+        action = "UPSERT"
+        records = list_records(zone_id)
+        if not records:
+            return
+        
+        while True:
+            record_choice = input("Select a record by number to modify (or type 'exit' to exit): ").strip()
+            if record_choice.lower() == 'exit':
+                print("Exiting record update...")
+                return
+            try:
+                record_choice = int(record_choice)
+                selected_record = records[record_choice - 1]
+                if 1 <= record_choice <= len(records):
+                    break
+                else:
+                    print("Invalid choice! Please select a valid number.")
+            except (ValueError, IndexError):
+                print("Invalid input! Please enter a valid number or type 'exit' to cancel.")
+        
+        record_name = selected_record['Name']
+        record_type = selected_record['Type']
+        record_value = input(f"Enter new value for {record_name} ({record_type}): ").strip()
+    
     else:
         record_sub_name = input("Enter the record sub-name (e.g., 'sub' for sub.example.com): ").strip()
         record_name = f"{record_sub_name}.{zone_name}"
