@@ -38,10 +38,10 @@ pip install boto3
 
 ### 6️⃣ Edit Configuration
 Before running the project, update the configuration file with the following details:
-- **VPC ID**
-- **Subnet ID**
-- **Key Pair Name**
-- **S3 Bucket Name Prefix**
+- VPC ID
+- Subnet ID
+- Key Pair Name
+- S3 Bucket Name Prefix
 
 ## ▶️ Running the Project
 Once everything is set up, start the program by running:
