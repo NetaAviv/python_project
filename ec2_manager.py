@@ -172,12 +172,12 @@ def get_new_instance_details():
         ami_id = get_matching_ami(instance_type, os)  # Get the latest AMI based on OS and instance type
         if ami_id:
             print(f"Found AMI: {ami_id}")
-            instance_name = input("Choose a name for the new instance: ").strip()
+            instance_name = input("\nChoose a name for the new instance: ").strip()
             print("Creating the instance...")
             new_instance_id = create_ec2_instance(ami_id, instance_type, instance_name)
-            print(f"Created EC2 Instance with ID: {new_instance_id}")
+            print(f"\nCreated EC2 Instance with ID: {new_instance_id}")
         else:
-            print("Failed to find a suitable AMI.")
+            print("\nFailed to find a suitable AMI.")
     except Exception as e:
         print(f"Error: {e}")
 
