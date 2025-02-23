@@ -77,6 +77,7 @@ def manage_dns_record():
     
     selected_zone = cli_zones[choice - 1]
     zone_id = selected_zone['Id'].split('/')[-1]
+    zone_name = selected_zone['Name'].rstrip('.')
     
     valid_actions = ['CREATE', 'UPSERT', 'DELETE']
     action = ""
@@ -93,8 +94,12 @@ def manage_dns_record():
             return
         
         while True:
+            record_choice = input("Select a record to delete by number (or type 'exit' to exit this page): ").strip()
+            if record_choice.lower() == 'exit':
+                print("Exiting record deletion...")
+                return
             try:
-                record_choice = int(input("Select a record to delete by number: "))
+                record_choice = int(record_choice)
                 selected_record = records[record_choice - 1]
                 
                 if selected_record['Type'] in ['NS', 'SOA']:
@@ -106,16 +111,18 @@ def manage_dns_record():
                 else:
                     print("Invalid choice! Please select a valid number.")
             except (ValueError, IndexError):
-                print("Invalid input! Please enter a valid number.")
+                print("Invalid input! Please enter a valid number or type 'exit' to cancel.")
         
         record_name = selected_record['Name']
         record_type = selected_record['Type']
         record_value = selected_record['ResourceRecords'][0]['Value']
         
         if record_type == "TXT":
-            record_value = record_value.strip('"')  # Ensure correct format
+            record_value = '"' + record_value.strip('"') + '"'
+
     else:
-        record_name = input("Enter the record name (e.g., sub.example.com): ").strip()
+        record_sub_name = input("Enter the record sub-name (e.g., 'sub' for sub.example.com): ").strip()
+        record_name = f"{record_sub_name}.{zone_name}"
         record_type = input("Enter record type (A, CNAME, TXT, etc.): ").strip().upper()
         record_value = input("Enter record value (e.g., IP for A record): ").strip()
     
