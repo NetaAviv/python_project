@@ -17,7 +17,7 @@ Make sure your AWS CLI is set up with the correct credentials:
 
 3️⃣ Clone the Repository
 
- - git clone
+ - git clone https://github.com/NetaAviv/python_project.git
  - cd python_project
 
 4️⃣ Set Up Python Environment
