@@ -3,6 +3,7 @@ pipeline {
 
     environment {
         VENV_DIR = "venv"
+        AWS_REGION = "us-east-1"  // Set your region here
     }
 
     stages {
@@ -35,6 +36,7 @@ pipeline {
             steps {
                 sh '''
                     source $VENV_DIR/bin/activate
+                    export AWS_REGION=$AWS_REGION  # Set region
                     python main.py
                 '''
             }
