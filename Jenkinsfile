@@ -3,7 +3,8 @@ pipeline {
 
     environment {
         VENV_DIR = "venv"
-        AWS_REGION = "us-east-1"  // Set your region here
+        AWS_REGION = 'us-east-1'  // Replace with your actual region
+        AWS_DEFAULT_REGION = 'us-east-1'  // Add this
     }
 
     stages {
