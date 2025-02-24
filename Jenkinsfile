@@ -8,7 +8,7 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                git 'https://github.com/NetaAviv/python_project.git'
+                git branch: 'main', url: 'https://github.com/NetaAviv/python_project.git'
             }
         }
 
