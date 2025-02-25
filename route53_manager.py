@@ -111,75 +111,72 @@ def manage_dns_record():
     while action not in ["CREATE", "UPDATE", "DELETE"]:
         action = input("\nChoose an action: 'create', 'update' or 'delete': ").strip().upper()
     
-    if action == "CREATE":
-        record_name = input("Enter a name for the new record: ").strip() + f".{zone_name}"
-        record_type = ""
-        while record_type not in ["A", "AAAA", "CNAME", "TXT"]:
-            record_type = input("Enter record type (A, AAAA, CNAME, TXT): ").strip().upper()
-        record_value = check_valid_type_to_value(record_type)
+        if action == "CREATE":
+            record_name = input("Enter a name for the new record: ").strip() + f".{zone_name}"
+            record_type = ""
+            while record_type not in ["A", "AAAA", "CNAME", "TXT"]:
+                record_type = input("Enter record type (A, AAAA, CNAME, TXT): ").strip().upper()
+            record_value = check_valid_type_to_value(record_type)
         
-        change_batch = {
-            'Changes': [{
-                'Action': 'CREATE',
-                'ResourceRecordSet': {
-                    'Name': record_name,
-                    'Type': record_type,
-                    'TTL': 300,
-                    'ResourceRecords': [{'Value': record_value}]
-                }
-            }]
-        }
-        route53.change_resource_record_sets(HostedZoneId=zone_id, ChangeBatch=change_batch)
-        print(f"Record created: {record_name} -> {record_value}")
+            change_batch = {
+                'Changes': [{
+                    'Action': 'CREATE',
+                    'ResourceRecordSet': {
+                        'Name': record_name,
+                        'Type': record_type,
+                        'TTL': 300,
+                        'ResourceRecords': [{'Value': record_value}]
+                    }
+                }]
+            }
+            route53.change_resource_record_sets(HostedZoneId=zone_id, ChangeBatch=change_batch)
+            print(f"Record created: {record_name} -> {record_value}")
     
-    elif action == "UPDATE":
-        records = list_records(zone_id)
-        if not records:
-            return
+        elif action == "UPDATE":
+            records = list_records(zone_id)
+            if not records:
+                return
+            while True:
+                try:
+                    record_choice = int(input("Select a record to update: "))
+                    if 1 <= record_choice <= len(records):
+                        break
+                    else:
+                        print("Invalid choice!")
+                except ValueError:
+                    print("Invalid input! Enter a number.")
         
-        while True:
-            try:
-                record_choice = int(input("Select a record to update: "))
-                if 1 <= record_choice <= len(records):
-                    break
-                else:
-                    print("Invalid choice!")
-            except ValueError:
-                print("Invalid input! Enter a number.")
-        
-        selected_record = records[record_choice - 1]
-        new_value = check_valid_type_to_value(selected_record['Type'])
-        
-        change_batch = {
-            'Changes': [{
-                'Action': 'UPSERT',
-                'ResourceRecordSet': {
-                    'Name': selected_record['Name'],
-                    'Type': selected_record['Type'],
-                    'TTL': 300,
-                    'ResourceRecords': [{'Value': new_value}]
-                }
-            }]
-        }
-        route53.change_resource_record_sets(HostedZoneId=zone_id, ChangeBatch=change_batch)
-        print("Record updated successfully!")
+            selected_record = records[record_choice - 1]
+            new_value = check_valid_type_to_value(selected_record['Type'])
+            change_batch = {
+                'Changes': [{
+                    'Action': 'UPSERT',
+                    'ResourceRecordSet': {
+                        'Name': selected_record['Name'],
+                        'Type': selected_record['Type'],
+                        'TTL': 300,
+                        'ResourceRecords': [{'Value': new_value}]
+                    }
+                }]
+            }
+            route53.change_resource_record_sets(HostedZoneId=zone_id, ChangeBatch=change_batch)
+            print("Record updated successfully!")
     
-    elif action == "DELETE":
-        records = list_records(zone_id)
-        if not records:
-            return
-        
-        while True:
-            try:
-                record_choice = int(input("Select a record to delete: "))
-                if 1 <= record_choice <= len(records):
-                    break
-                else:
-                    print("Invalid choice!")
-            except ValueError:
-                print("Invalid input! Enter a number.")
-        
-        selected_record = records[record_choice - 1]
-        change_batch = {'Changes': [{'Action': 'DELETE', 'ResourceRecordSet': selected_record}]}
-        route53.change_resource_record_sets(HostedZoneId=zone_id, ChangeBatch=change_batch)
-        print("Record deleted successfully!")
+        elif action == "DELETE":
+            records = list_records(zone_id)
+            if records:
+                while True:
+                    try:
+                        record_choice = int(input("Select a record to delete: "))
+                        if 1 <= record_choice <= len(records):
+                            break
+                        else:
+                            print("Invalid choice!")
+                    except ValueError:
+                        print("Invalid input! Enter a number.")
+                selected_record = records[record_choice - 1]
+                change_batch = {'Changes': [{'Action': 'DELETE', 'ResourceRecordSet': selected_record}]}
+                route53.change_resource_record_sets(HostedZoneId=zone_id, ChangeBatch=change_batch)
+                print("Record deleted successfully!")
+        else:
+            print ("Not a valid input")
