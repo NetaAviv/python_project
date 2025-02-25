@@ -22,17 +22,22 @@ def create_s3_bucket():
     if bucket_name in existing_buckets:
         print(f"The bucket name must be unique. '{bucket_name}' already exists.")
         return
-
-    public_access = input("Do you want this bucket to be public? (yes/no): ").strip().lower()
+    while True:
+        public_access = input("Do you want this bucket to be public? (yes/no): ").strip().lower()
+        if public_access in ["yes", "no"]:
+            break
+        print(" Invalid choice! Please enter 'yes' or 'no'.")
     if public_access == "yes":
-        confirm = input("Are you sure you want to make this bucket public? (yes/no): ").strip().lower()
-        if confirm != "yes":
-            print("OK, bucket will be private.")
-            public_access = "no"
+        while True:
+            confirm = input("Are you sure? Public buckets expose all objects to the internet. (yes/no): ").strip().lower()
+            if confirm in ["yes", "no"]:
+                if confirm == "no":
+                    public_access = "no"
+                break
+            print(" Invalid choice! Please enter 'yes' or 'no'.")
 
     try:
         s3_client.create_bucket(Bucket=bucket_name)
-        
         if public_access == "yes":
             s3_client.put_public_access_block(
                 Bucket=bucket_name,
