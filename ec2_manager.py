@@ -41,11 +41,12 @@ def print_instances_details(list_of_instances):
 def viewing_request():
     # Handles user input for viewing instances
     to_view = '0'
-    while to_view != '4':
+    while to_view != '5':
         to_view = input("\nEnter 1 - View running instances\n"
                         "Enter 2 - View stopped instances\n"
-                        "Enter 3 - View all\n"
-                        "Enter 4 - Return to main ec2 managment page\n"
+                        "Enter 3 - View recently deleted instances\n"
+                        "Enter 4 - View all\n"
+                        "Enter 5 - Return to main ec2 managment page\n"
                         "Your input: ").strip()
 
         if to_view == '1':
@@ -63,13 +64,20 @@ def viewing_request():
             else:
                 print_instances_details(stopped_instances)
         elif to_view == '3':
+            print("\nRecently deleted instances:")
+            stopped_instances = list_instances("terminated")
+            if len(stopped_instances) == 0:
+                print("\nNo recently deleted instances.")
+            else:
+                print_instances_details(stopped_instances)
+        elif to_view == '4':
             print("\nAll instances:")
-            all_instances = list_instances("stopped") + list_instances("running")
+            all_instances = list_instances("stopped") + list_instances("running") + list_instances("terminated")
             if len(all_instances) == 0:
                 print("\nNo instances were made by the program.")
             else:
                 print_instances_details(all_instances)
-        elif to_view == '4':
+        elif to_view == '5':
             print("Returning back to main ec2 managment page...")
         else:
             print("Invalid option! Please enter a valid option.")
@@ -134,13 +142,10 @@ def get_matching_ami(instance_type, os):
         else:  # t4g.nano (ARM-based)
             parameter_name = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-arm64"
 
-    else:
-        raise ValueError("Invalid OS. Only 'ubuntu' and 'amazon-linux' are supported.")
-
     try:
         response = ssm_client.get_parameter(Name=parameter_name)
         ami_id = response['Parameter']['Value']
-        print(f"Latest AMI ID for {os} ({instance_type}): {ami_id}")
+        print(f"Found latest AMI ID for {os} on {instance_type}: {ami_id}")
         return ami_id
 
     except Exception as e:
@@ -155,7 +160,6 @@ def get_new_instance_details():
             print("Invalid instance type. Please choose either 't3.nano' or 't4g.nano'.")
         else:
             valid_instance_type = True
-            print(f"You've selected {instance_type}.")
     
     # Choose OS
     valid_os = False
@@ -165,13 +169,12 @@ def get_new_instance_details():
             print("Invalid OS. Please choose either 'amazon-linux' or 'ubuntu'.")
         else:
             valid_os = True
-            print(f"You've selected {os}. Proceeding with instance creation...")
+            print(f"You've selected {instance_type} and {os}. Proceeding with instance creation...")
 
     print("Trying to find the perfect AMI based on your choices...")
     try:
         ami_id = get_matching_ami(instance_type, os)  # Get the latest AMI based on OS and instance type
         if ami_id:
-            print(f"Found AMI: {ami_id}")
             instance_name = input("\nChoose a name for the new instance: ").strip()
             print("Creating the instance...")
             new_instance_id = create_ec2_instance(ami_id, instance_type, instance_name)
@@ -182,13 +185,18 @@ def get_new_instance_details():
         print(f"Error: {e}")
 
 def create_ec2_instance(ami_id, instance_type, instance_name):
-    use_userdata = input("Do you want to install Git and Python on the instance? (yes/no): ").strip().lower()
-    if use_userdata == "yes":
-        print("Ok, will install git and python")
-        user_data = load_user_data()
-    else:
-        print("Ok,will not install git or python")
-        user_data = ""
+    use_userdata = "nope"
+    while use_userdata not in ["yes", "no"]:
+        use_userdata = input("Do you want to install Git and Python on the instance? (yes/no): ").strip().lower()
+        if use_userdata == "yes":
+            print("Ok, will install git and python")
+            user_data = load_user_data()
+        if use_userdata == "no":
+            print("Ok, will not install git and python")
+            user_data = ""
+        else:
+            print("Please choose a valid option")
+
     try:
         vpc_id, subnet_id, key_name = load_configuration()
         instances = ec2.create_instances(
