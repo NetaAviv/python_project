@@ -1,1 +1,87 @@
-
+def manage_dns_record():
+    cli_zones = list_hosted_zones()
+    if not cli_zones:
+        return
+    
+    choice = int(input("Select a hosted zone by number: "))
+    selected_zone = cli_zones[choice - 1]
+    zone_id = selected_zone['Id'].split('/')[-1]
+    zone_name = selected_zone['Name'].rstrip('.')
+    
+    action = input("Choose an action: 'create', 'update' or 'delete': ").strip().upper()
+    
+    if action == "DELETE":
+        records = list_records(zone_id)
+        if not records:
+            return
+        
+        record_choice = int(input("Select a record to delete by number: "))
+        selected_record = records[record_choice - 1]
+        
+        if selected_record['Type'] in ['NS', 'SOA']:
+            print("Cannot delete NS or SOA records!")
+            return
+        
+        record_name = selected_record['Name']
+        record_type = selected_record['Type']
+        record_value = [entry['Value'] for entry in selected_record.get('ResourceRecords', [])]
+        
+        change_batch = {
+            'Comment': 'Deleting record via CLI',
+            'Changes': [
+                {
+                    'Action': 'DELETE',
+                    'ResourceRecordSet': {
+                        'Name': record_name,
+                        'Type': record_type,
+                        'TTL': selected_record.get('TTL', 300),
+                        'ResourceRecords': [{'Value': value} for value in record_value]
+                    }
+                }
+            ]
+        }
+    
+    elif action == "UPDATE":
+        records = list_records(zone_id)
+        if not records:
+            return
+        
+        record_choice = int(input("Select a record to modify by number: "))
+        selected_record = records[record_choice - 1]
+        
+        if selected_record['Type'] in ['NS', 'SOA']:
+            print("Cannot update NS or SOA records!")
+            return
+        
+        record_name = selected_record['Name']
+        record_type = selected_record['Type']
+        record_value = input(f"Enter new value for {record_name} ({record_type}): ").strip()
+        
+        if record_type == "TXT":
+            if not (record_value.startswith('"') and record_value.endswith('"')):
+                record_value = f'"{record_value}"'
+    
+        change_batch = {
+            'Comment': 'Updating record via CLI',
+            'Changes': [
+                {
+                    'Action': 'UPSERT',
+                    'ResourceRecordSet': {
+                        'Name': record_name,
+                        'Type': record_type,
+                        'TTL': selected_record.get('TTL', 300),
+                        'ResourceRecords': [{'Value': record_value}]
+                    }
+                }
+            ]
+        }
+    
+    try:
+        response = route53.change_resource_record_sets(
+            HostedZoneId=zone_id,
+            ChangeBatch=change_batch
+        )
+        print(f"Record {action.lower()}d: {record_name} -> {record_value}")
+        return response
+    except Exception as e:
+        print(f"An error occurred: {e}")
