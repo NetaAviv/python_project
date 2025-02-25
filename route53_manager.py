@@ -1,5 +1,5 @@
 import boto3
-import json
+import re
 
 route53 = boto3.client('route53')
 
@@ -47,23 +47,50 @@ def list_hosted_zones():
 
 def list_records(zone_id):
     response = route53.list_resource_record_sets(HostedZoneId=zone_id)
-    records = response['ResourceRecordSets']
+    records = [record for record in response['ResourceRecordSets'] if record['Type'] not in ['NS', 'SOA']]
     
     if not records:
-        print("No records found in this hosted zone.")
+        print("\nNo editable records found in this hosted zone.")
         return []
     
-    print("Records in the hosted zone:")
+    print("\nExisting DNS Records:")
     for idx, record in enumerate(records, start=1):
         values = ", ".join([r['Value'] for r in record.get('ResourceRecords', [])])
-        print(f"{idx}. {record['Name']} ({record['Type']}): {values}")
+        print(f"{idx}. {record['Name']} ({record['Type']}) -> {values}")
     
     return records
+
+def check_valid_type_to_value(record_type):
+    format_examples = {
+        "A": "(IPv4 address, e.g., 192.168.1.1)",
+        "AAAA": "(IPv6 address, e.g., 2001:db8::1)",
+        "CNAME": "(Domain name, e.g., example.com)",
+        "TXT": "(Text value, e.g., \"example text\")"
+    }
+    
+    example = format_examples.get(record_type, "(Custom format)")
+    print(f"\nExpected format for {record_type} record: {example}")
+    
+    while True:
+        record_value = input("Enter a value for the record: ").strip()
+        
+        if record_type == "A" and not re.match(r"^\d{1,3}(\.\d{1,3}){3}$", record_value):
+            print("Invalid IPv4 address! Please enter a valid IPv4 address.")
+        elif record_type == "AAAA" and not re.match(r"^[0-9a-fA-F:]+$", record_value):
+            print("Invalid IPv6 address! Please enter a valid IPv6 address.")
+        elif record_type == "CNAME" and not re.match(r"^[a-zA-Z0-9.-]+\.[a-zA-Z]+$", record_value):
+            print("Invalid domain name! Please enter a valid domain.")
+        elif record_type == "TXT":
+            if not (record_value.startswith('"') and record_value.endswith('"')):
+                record_value = f'"{record_value}"'
+            return record_value
+        else:
+            return record_value
 
 def manage_dns_record():
     cli_zones = list_hosted_zones()
     if not cli_zones:
-        print ("Can't manage dns records without a hosted zone, please make a zone first")
+        print("Can't manage DNS records without a hosted zone. Please create a zone first.")
         return
     
     while True:
@@ -80,108 +107,79 @@ def manage_dns_record():
     zone_id = selected_zone['Id'].split('/')[-1]
     zone_name = selected_zone['Name'].rstrip('.')
     
-    valid_actions = ['CREATE', 'UPDATE', 'DELETE']
     action = ""
-    while action not in valid_actions:
-        action = input("\nChoose an action 'create', 'update' or 'delete': ").strip().upper()
-        if action not in valid_actions:
-            print("Invalid action")
-        else:
-            print(f"\nYou chose to {action.lower()} a record.")
+    while action not in ["CREATE", "UPDATE", "DELETE"]:
+        action = input("\nChoose an action: 'create', 'update' or 'delete': ").strip().upper()
     
-    if action == "DELETE":
-        print ("")
-        records = list_records(zone_id)
-        if not records:
-            print ("There are no records to delete")
-            return
+    if action == "CREATE":
+        record_name = input("Enter a name for the new record: ").strip() + f".{zone_name}"
+        record_type = ""
+        while record_type not in ["A", "AAAA", "CNAME", "TXT"]:
+            record_type = input("Enter record type (A, AAAA, CNAME, TXT): ").strip().upper()
+        record_value = check_valid_type_to_value(record_type)
         
-        while True:
-            print("\nPlease note- Deletion of NS or SOA records is not allowed! ")
-            record_choice = input("Select a record to delete by number (or type 'exit' to exit this page): ").strip()
-            if record_choice.lower() == 'exit':
-                print("Exiting record deletion...")
-                return
-            try:
-                record_choice = int(record_choice)
-                selected_record = records[record_choice - 1]
-                
-                if selected_record['Type'] in ['NS', 'SOA']:
-                    print("Cannot delete NS or SOA records! They are required for the hosted zone.")
-                    continue
-                
-                if 1 <= record_choice <= len(records):
-                    break
-                else:
-                    print("Invalid choice! Please select a valid number.")
-            except (ValueError, IndexError):
-                print("Invalid input! Please enter a valid number or type 'exit' to cancel.")
-        
-        record_name = selected_record['Name']
-        record_type = selected_record['Type']
-        record_value = selected_record['ResourceRecords'][0]['Value']
-        
-    elif action == "UPDATE":
-        action = "UPSERT"
-        print ("")
-        records = list_records(zone_id)
-        if not records:
-            return
-        
-        while True:
-            print("\nPlease note- Updating of NS or SOA records is not allowed! ")
-            record_choice = input("Select a record by number to modify (or type 'exit' to exit): ").strip()
-            if record_choice.lower() == 'exit':
-                print("Exiting record update...")
-                return
-            try:
-                record_choice = int(record_choice)
-                selected_record = records[record_choice - 1]
-                if selected_record['Type'] in ['NS', 'SOA']:
-                    print("Cannot update NS or SOA records! They are required for the hosted zone.")
-                    continue
-                if 1 <= record_choice <= len(records):
-                    break
-                else:
-                    print("Invalid choice! Please select a valid number.")
-            except (ValueError, IndexError):
-                print("Invalid input! Please enter a valid number or type 'exit' to cancel.")
-        
-        record_name = selected_record['Name']
-        record_type = selected_record['Type']
-        record_value = input(f"Enter new value for {record_name} ({record_type}): ").strip()
-    
-    else:
-        record_sub_name = input("Enter the record sub-name (e.g., 'sub' for sub.example.com): ").strip()
-        record_name = f"{record_sub_name}.{zone_name}"
-        record_type = input("Enter record type (A, CNAME, TXT, etc.): ").strip().upper()
-        record_value = input("Enter record value (e.g., IP for A record): ").strip()
-    
-    ttl = 300
-    if record_type == "TXT":
-        record_value = f'"{record_value}"'
-    
-    change_batch = {
-        'Comment': 'Managed by CLI',
-        'Changes': [
-            {
-                'Action': action,
+        change_batch = {
+            'Changes': [{
+                'Action': 'CREATE',
                 'ResourceRecordSet': {
                     'Name': record_name,
                     'Type': record_type,
-                    'TTL': ttl,
+                    'TTL': 300,
                     'ResourceRecords': [{'Value': record_value}]
                 }
-            }
-        ]
-    }
+            }]
+        }
+        route53.change_resource_record_sets(HostedZoneId=zone_id, ChangeBatch=change_batch)
+        print(f"Record created: {record_name} -> {record_value}")
     
-    try:
-        response = route53.change_resource_record_sets(
-            HostedZoneId=zone_id,
-            ChangeBatch=change_batch
-        )
-        print(f"Record {action.lower()}d: {record_name} -> {record_value}")
-        return response
-    except Exception as e:
-        print(f"An error occurred: {e}")
+    elif action == "UPDATE":
+        records = list_records(zone_id)
+        if not records:
+            return
+        
+        while True:
+            try:
+                record_choice = int(input("Select a record to update: "))
+                if 1 <= record_choice <= len(records):
+                    break
+                else:
+                    print("Invalid choice!")
+            except ValueError:
+                print("Invalid input! Enter a number.")
+        
+        selected_record = records[record_choice - 1]
+        new_value = check_valid_type_to_value(selected_record['Type'])
+        
+        change_batch = {
+            'Changes': [{
+                'Action': 'UPSERT',
+                'ResourceRecordSet': {
+                    'Name': selected_record['Name'],
+                    'Type': selected_record['Type'],
+                    'TTL': 300,
+                    'ResourceRecords': [{'Value': new_value}]
+                }
+            }]
+        }
+        route53.change_resource_record_sets(HostedZoneId=zone_id, ChangeBatch=change_batch)
+        print("Record updated successfully!")
+    
+    elif action == "DELETE":
+        records = list_records(zone_id)
+        if not records:
+            return
+        
+        while True:
+            try:
+                record_choice = int(input("Select a record to delete: "))
+                if 1 <= record_choice <= len(records):
+                    break
+                else:
+                    print("Invalid choice!")
+            except ValueError:
+                print("Invalid input! Enter a number.")
+        
+        selected_record = records[record_choice - 1]
+        change_batch = {'Changes': [{'Action': 'DELETE', 'ResourceRecordSet': selected_record}]}
+        route53.change_resource_record_sets(HostedZoneId=zone_id, ChangeBatch=change_batch)
+        print("Record deleted successfully!")
