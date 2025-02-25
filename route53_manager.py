@@ -36,10 +36,10 @@ def list_hosted_zones():
                 cli_zones.append(zone)
     
     if not cli_zones:
-        print("No hosted zones created by the CLI.")
+        print("\nNo hosted zones created by the CLI.")
         return []
     
-    print("Hosted zones created by the CLI:")
+    print("\nHosted zones created by the CLI:")
     for idx, zone in enumerate(cli_zones, start=1):
         print(f"{idx}. {zone['Name']} ID: {zone['Id'].split('/')[-1]}")
     
@@ -63,6 +63,7 @@ def list_records(zone_id):
 def manage_dns_record():
     cli_zones = list_hosted_zones()
     if not cli_zones:
+        print ("Can't manage dns records without a hosted zone, please make a zone first")
         return
     
     while True:
@@ -82,18 +83,21 @@ def manage_dns_record():
     valid_actions = ['CREATE', 'UPDATE', 'DELETE']
     action = ""
     while action not in valid_actions:
-        action = input("Choose an action 'create', 'update' or 'delete: ").strip().upper()
+        action = input("\nChoose an action 'create', 'update' or 'delete': ").strip().upper()
         if action not in valid_actions:
             print("Invalid action")
         else:
-            print(f"You chose to {action.lower()} a record.")
+            print(f"\nYou chose to {action.lower()} a record.")
     
     if action == "DELETE":
+        print ("")
         records = list_records(zone_id)
         if not records:
+            print ("There are no records to delete")
             return
         
         while True:
+            print("\nPlease note- Deletion of NS or SOA records is not allowed! ")
             record_choice = input("Select a record to delete by number (or type 'exit' to exit this page): ").strip()
             if record_choice.lower() == 'exit':
                 print("Exiting record deletion...")
@@ -119,11 +123,13 @@ def manage_dns_record():
         
     elif action == "UPDATE":
         action = "UPSERT"
+        print ("")
         records = list_records(zone_id)
         if not records:
             return
         
         while True:
+            print("\nPlease note- Updating of NS or SOA records is not allowed! ")
             record_choice = input("Select a record by number to modify (or type 'exit' to exit): ").strip()
             if record_choice.lower() == 'exit':
                 print("Exiting record update...")
@@ -131,6 +137,9 @@ def manage_dns_record():
             try:
                 record_choice = int(record_choice)
                 selected_record = records[record_choice - 1]
+                if selected_record['Type'] in ['NS', 'SOA']:
+                    print("Cannot update NS or SOA records! They are required for the hosted zone.")
+                    continue
                 if 1 <= record_choice <= len(records):
                     break
                 else:
