@@ -23,21 +23,19 @@ This CLI tool automates AWS resource provisioning and management. It consists of
 - Fetch and display the relevant EC2 instances.
 
 ### 2. Create EC2 Instance
-- Check the number of running EC2 instances created by the CLI (**limit: 2**).
-- Allow the user to select an instance type (**t3.nano** or **t4g.nano**).
-- Allow the user to choose an OS (**Ubuntu** or **Amazon Linux**).
+- Check the number of running EC2 instances created by the CLI (limit: 2).
+- Allow the user to select an instance type (t3.nano or t4g.nano).
+- Allow the user to choose an OS (Ubuntu or Amazon Linux).
 - Fetch the latest AMI ID corresponding to the selected OS.
 - Prompt the user to enter a custom instance name.
 - Ask the user if they want to include User Data to install Git and Python upon instance creation.
 - Launch the instance with the following tags:
-  ```plaintext
-  CreatedBy=CLI
-  Owner=NetaAviv
-  ```
-- Display instance details (**ID, name, state, public IP**).
+    - CreatedBy=CLI
+    - Owner=NetaAviv
+- Display instance details (ID, name, state, public IP).
 
 ### 3. Start a Stopped EC2 Instance
-- Ensure there are **fewer than 2 running instances** before allowing the action.
+- Ensure there are fewer than 2 running instances before allowing the action.
 - List all stopped instances created by the CLI.
 - Prompt the user to select an instance to start.
 - Start the selected instance.
@@ -54,10 +52,10 @@ This CLI tool automates AWS resource provisioning and management. It consists of
 ## S3 Bucket Management
 
 ### 1. Create an S3 Bucket
-- Prompt the user to enter a bucket name (**prefix added from configuration file**).
+- Prompt the user to enter a bucket name (prefix added from configuration file).
 - Ensure the bucket name is unique.
-- Allow the user to choose between **public** or **private** access.
-- If **public** access is selected, require confirmation.
+- Allow the user to choose between public or private access.
+- If public access is selected, require confirmation.
 - Create the bucket with proper settings and CLI-generated tags.
 - Display the bucket details.
 
@@ -80,28 +78,28 @@ This CLI tool automates AWS resource provisioning and management. It consists of
 - Prompt the user to enter a domain name.
 - Validate the domain name format.
 - Create the hosted zone with appropriate CLI-generated tags.
-- Display zone details (**Zone ID, Name Servers**).
+- Display zone details (Zone ID, Name Servers).
 
 ### 2. Manage DNS Records
 - List all hosted zones created by the CLI.
 - Prompt the user to choose a hosted zone to manage records.
-- Provide options to **Create, Update, or Delete** a DNS record.
+- Provide options to Create, Update, or Delete a DNS record.
 
 #### a. Create a Record
 - Prompt the user to enter a record name.
-- Allow selection of a record type (**A, AAAA, CNAME, TXT**).
+- Allow selection of a record type (A, AAAA, CNAME or TXT).
 - Display an example of the expected format for the chosen record type.
 - Validate user input against the expected format.
 - Create the record and display confirmation.
 
 #### b. Update a Record
-- List all existing **editable** records in the selected hosted zone (**NS and SOA records cannot be modified**).
+- List all existing editable records in the selected hosted zone (NS and SOA records cannot be modified).
 - Prompt the user to select a record to update.
 - Ask the user for a new value, ensuring it matches the required format.
 - Update the record and display the modified entry.
 
 #### c. Delete a Record
-- List all existing **deletable** records in the selected hosted zone (**NS and SOA records cannot be deleted**).
+- List all existing deletable records in the selected hosted zone (NS and SOA records cannot be deleted).
 - Prompt the user to select a record to delete.
 - Delete the record and confirm the action.
 
