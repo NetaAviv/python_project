@@ -38,6 +38,7 @@ pip install boto3
 
 ### 6️⃣ Edit Configuration
 Before running the project, update the configuration file with the following details:
+ nano configuration 
 - VPC ID
 - Subnet ID
 - Key Pair Name
